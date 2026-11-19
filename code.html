@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ROUBE UM BRAINROT ULTIMATE 3D</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0f0c1b; color: #fff; }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        /* HUD Superior */
+        .hud-top {
+            position: absolute; top: 15px; left: 15px; right: 15px; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center; pointer-events: none;
+        }
+        .hud-box {
+            background: rgba(15, 12, 27, 0.85); border: 2px solid #ff007f; padding: 10px 20px;
+            border-radius: 15px; backdrop-filter: blur(5px); box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+            pointer-events: auto; display: flex; align-items: center; gap: 10px;
+        }
+        .money-display { font-size: 22px; font-weight: bold; color: #00ffcc; text-shadow: 0 0 10px rgba(0,255,204,0.5); }
+        .rps-display { font-size: 14px; color: #ffcc00; }
+
+        /* HUD Menus & Botões */
+        .hud-buttons {
+            position: absolute; top: 80px; right: 15px; z-index: 10;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .btn-menu {
+            background: linear-gradient(135deg, #7928ca, #ff0080); border: none; color: white;
+            padding: 12px 18px; border-radius: 12px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255,0,128,0.4); transition: transform 0.2s, box-shadow 0.2s;
+            display: flex; align-items: center; gap: 8px; font-size: 14px;
+        }
+        .btn-menu:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255,0,128,0.7); }
+        .btn-admin { background: linear-gradient(135deg, #f5af19, #f12711) !important; box-shadow: 0 4px 15px rgba(241,39,17,0.5); }
+
+        /* Notificações e Avisos de Evento */
+        #event-banner {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 10;
+            background: rgba(255, 0, 127, 0.9); padding: 8px 25px; border-radius: 20px;
+            font-weight: bold; font-size: 16px; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 0 20px #ff007f; display: none; animation: pulseEvent 1s infinite alternate;
+        }
+        @keyframes pulseEvent { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.05); } }
+
+        /* Janelas Modais */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7);
+            z-index: 100; display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px);
+        }
+        .modal-content {
+            background: #1a1528; border: 3px solid #7928ca; width: 92%; max-width: 750px;
+            max-height: 85vh; border-radius: 20px; padding: 25px; display: flex; flex-direction: column;
+            box-shadow: 0 0 30px rgba(121, 40, 202, 0.6); position: relative;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #332952; padding-bottom: 10px; }
+        .modal-header h2 { color: #00ffcc; font-size: 22px; }
+        .close-modal { background: #ff4757; border: none; color: white; width: 35px; height: 35px; border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .modal-body { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; padding-right: 5px; }
+
+        /* Estilos de Itens / Tabelas */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .card-item {
+            background: #261f3d; border: 2px solid #483875; border-radius: 12px; padding: 12px;
+            text-align: center; display: flex; flex-direction: column; gap: 8px; transition: 0.2s;
+        }
+        .card-item:hover { border-color: #00ffcc; transform: translateY(-3px); }
+        .card-item h4 { font-size: 14px; color: #fff; }
+        .card-item p { font-size: 11px; color: #aaa; }
+        .btn-action {
+            background: #00ffcc; border: none; color: #0f0c1b; font-weight: bold; padding: 6px; border-radius: 8px; cursor: pointer; font-size: 12px;
+        }
+        .btn-action:hover { background: #00b38f; color: #fff; }
+
+        /* Painel Admin Específico com muitos comandos */
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .admin-btn {
+            background: #2a1b3d; border: 2px solid #f12711; color: #fff; padding: 10px; border-radius: 10px;
+            cursor: pointer; font-weight: bold; text-align: left; transition: 0.2s; display: flex; flex-direction: column; gap: 3px; font-size: 12px;
+        }
+        .admin-btn:hover { background: #f12711; color: #fff; box-shadow: 0 0 15px rgba(241,39,17,0.6); }
+        .admin-btn span { font-size: 10px; color: #ffcccb; font-weight: normal; }
+
+        /* Controles Mobile */
+        #mobile-controls {
+            position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 20;
+            display: none; justify-content: space-between; pointer-events: none;
+        }
+        .joystick-base {
+            width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%; position: relative; pointer-events: auto; touch-action: none;
+        }
+        .joystick-thumb {
+            width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%;
+            position: absolute; top: 35px; left: 35px; pointer-events: none;
+        }
+        .action-buttons-mobile { display: flex; gap: 15px; pointer-events: auto; align-items: flex-end; }
+        .btn-mob {
+            width: 65px; height: 65px; background: linear-gradient(135deg, #7928ca, #ff0080); border: none;
+            border-radius: 50%; color: white; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+        }
+
+        /* Instruções na tela */
+        .instructions {
+            position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10;
+            background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 10px; font-size: 12px; color: #ccc;
+            pointer-events: none; text-align: center; backdrop-filter: blur(4px);
+        }
+    </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div id="event-banner">⚡ EVENTO ADMIN ATIVO: MODO DEUS TOTAL! ⚡</div>
+
+    <!-- HUD SUPERIOR -->
+    <div class="hud-top">
+        <div class="hud-box">
+            <div>
+               <div class="money-display" id="money-val">$ 1,500</div>
+               <div class="rps-display" id="rps-val">+12/s por Brainrots</div>
+            </div>
+        </div>
+        <div class="hud-box" style="border-color: #00ffcc;">
+            <div style="font-size: 14px; color: #00ffcc; font-weight: bold;">REBIRTH: <span id="rebirth-val">0</span></div>
+        </div>
+    </div>
+
+    <!-- BOTÕES DO MENU -->
+    <div class="hud-buttons">
+        <button class="btn-menu" onclick="openModal('shop-modal')">🛒 Loja Brainrots</button>
+        <button class="btn-menu" onclick="openModal('inventory-modal')">🎒 Inventário</button>
+        <button class="btn-menu" onclick="openModal('codes-modal')">🎟️ Códigos</button>
+        <button class="btn-menu" onclick="openModal('ranking-modal')">🏆 Ranking</button>
+        <button class="btn-menu btn-admin" onclick="openModal('admin-modal')">👑 Painel Admin V999</button>
+    </div>
+
+    <div class="instructions">Use <b>W, A, S, D</b> para mover o Jogador | <b>ESPAÇO</b> para Pular | Clique perto da esteira para Comprar!</div>
+
+    <!-- CONTROLES MOBILE -->
+    <div id="mobile-controls">
+        <div class="joystick-base" id="joystick">
+            <div class="joystick-thumb" id="joystick-thumb"></div>
+        </div>
+        <div class="action-buttons-mobile">
+            <button class="btn-mob" onclick="triggerJump()">Pular</button>
+            <button class="btn-mob" style="background: linear-gradient(135deg, #00ffcc, #0077ff);" onclick="interactConveyor()">Comprar</button>
+        </div>
+    </div>
+
+    <!-- MODAL LOJA -->
+    <div class="modal" id="shop-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛒 Loja Oficial de Brainrots</h2>
+                <button class="close-modal" onclick="closeModal('shop-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="grid-cards" id="shop-items-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INVENTÁRIO -->
+    <div class="modal" id="inventory-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎒 Seu Inventário & Base</h2>
+                <button class="close-modal" onclick="closeModal('inventory-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#aaa; font-size:13px;">Brainrots coletados geram renda passiva por segundo na sua base!</p>
+                <div class="grid-cards" id="inventory-items-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CÓDIGOS -->
+    <div class="modal" id="codes-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎟️ Resgatar Códigos Promocionais</h2>
+                <button class="close-modal" onclick="closeModal('codes-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: #ccc;">Digite códigos secretos para ganhar dinheiro e itens raros!</p>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="code-input" placeholder="Ex: BRAINROT2026" style="flex:1; padding: 12px; border-radius: 10px; border: 2px solid #7928ca; background: #120e1f; color: #fff; font-size: 16px;">
+                    <button class="btn-action" style="padding: 0 20px; font-size: 14px;" onclick="redeemCode()">Resgatar</button>
+                </div>
+                <div id="code-feedback" style="font-size: 13px; color: #00ffcc; margin-top: 5px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RANKING -->
+    <div class="modal" id="ranking-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏆 Ranking Global de Jogadores</h2>
+                <button class="close-modal" onclick="closeModal('ranking-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; flex-direction: column; gap: 8px;" id="ranking-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PAINEL ADMIN V999 (COM SUPER COMANDOS) -->
+    <div class="modal" id="admin-modal">
+        <div class="modal-content" style="border-color: #f12711; box-shadow: 0 0 35px rgba(241,39,17,0.7);">
+            <div class="modal-header" style="border-color: #f12711;">
+                <h2 style="color: #ff5252;">👑 Painel Admin V999 (Super Comandos)</h2>
+                <button class="close-modal" onclick="closeModal('admin-modal')">X</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: #ffcccb;">Painel com comandos ilimitados e absolutos para teste imediato:</p>
+                <div class="admin-grid">
+                    <button class="admin-btn" onclick="adminAddMoney(10000)">💰 +$10.000 Cash<span>Injeta dinheiro rápido.</span></button>
+                    <button class="admin-btn" onclick="adminAddMoney(1000000)">💎 +$1 MILHÃO<span>Enriquece instantaneamente.</span></button>
+                    <button class="admin-btn" onclick="adminAddMoney(999999999)">🔥 +$999M INFINITO<span>Dinheiro máximo absoluto.</span></button>
+                    
+                    <button class="admin-btn" onclick="adminAddRps(500)">⚡ +500 Renda/s<span>Acelera ganhos por segundo.</span></button>
+                    <button class="admin-btn" onclick="adminAddRps(10000)">🚀 +10K Renda/s<span>Geração absurda passiva.</span></button>
+                    <button class="admin-btn" onclick="adminAddRps(999999)">⚡ +999M Renda/s<span>Gera trilhões por segundo.</span></button>
+
+                    <button class="admin-btn" onclick="adminSpawnSecret()">🌟 Spawn Secreto<span>Gera item OG/Divino imediato.</span></button>
+                    <button class="admin-btn" onclick="adminUnlockAll()">🔓 Desbloquear Tudo<span>Adiciona todos os brainrots.</span></button>
+                    <button class="admin-btn" onclick="adminTriggerEvent()">⚡ Evento Turbo<span>Dobra todos os lucros.</span></button>
+
+                    <button class="admin-btn" onclick="adminMaxRebirth()">🚀 +1 Rebirth<span>Avança nível de rebirth.</span></button>
+                    <button class="admin-btn" onclick="adminMaxRebirth(50)">🌟 Max 50 Rebirths<span>Chega ao topo do rebirth.</span></button>
+                    <button class="admin-btn" onclick="adminSpeedBoost()">🏃 Velocidade Max<span>Corra super rápido.</span></button>
+
+                    <button class="admin-btn" onclick="adminClearInventory()">🗑️ Limpar Base<span>Zera itens da base.</span></button>
+                    <button class="admin-btn" onclick="adminResetSave()">🔄 Resetar Jogo<span>Reinicia todo o progresso.</span></button>
+                    <button class="admin-btn" onclick="adminGodMode()">🛡️ Modo Deus<span>Imune a tudo e super bônus.</span></button>
+                </div>
+                <div id="admin-log" style="background: #120e1f; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #00ffcc; max-height: 90px; overflow-y: auto;">
+                    [ADMIN V999] 99M de comandos prontos para execução...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ESTADO DO JOGO & ECONOMIA ---
+        let gameState = {
+            money: 1500,
+            rps: 12,
+            rebirth: 0,
+            inventory: [],
+            codesUsed: []
+        };
+
+        const brainrotCatalog = [
+            { id: 1, name: "Noobini Pizzanini", rarity: "Comum", price: 250, rps: 5, color: 0x3498db },
+            { id: 2, name: "Tralalero Tralala", rarity: "Incomum", price: 600, rps: 15, color: 0x2ecc71 },
+            { id: 3, name: "Tung Tung Sahur", rarity: "Raro", price: 1500, rps: 40, color: 0x9b59b6 },
+            { id: 4, name: "Ballerina Cappuccina", rarity: "Épico", price: 4000, rps: 110, color: 0xe67e22 },
+            { id: 5, name: "Bombardiro Crocodilo", rarity: "Lendário", price: 10000, rps: 300, color: 0xf1c40f },
+            { id: 6, name: "Lirili Larila", rarity: "Mítico", price: 25000, rps: 800, color: 0xe74c3c },
+            { id: 7, name: "Boneca Ambalabu", rarity: "Divino", price: 75000, rps: 2500, color: 0x34495e },
+            { id: 8, name: "Trippi Troppi", rarity: "Secreto", price: 200000, rps: 7000, color: 0xff007f },
+            { id: 9, name: "Brainrot OG Ultimate", rarity: "OG", price: 500000, rps: 20000, color: 0x00ffcc }
+        ];
+
+        // --- WEB AUDIO API (Sons Sintéticos) ---
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                let now = audioCtx.currentTime;
+
+                if (type === 'coin') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.setValueAtTime(880, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'buy') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'admin') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.setValueAtTime(350, now + 0.1);
+                    osc.frequency.setValueAtTime(600, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch(e) {}
+        }
+
+        // --- THREE.JS ENGINE 3D ---
+        let scene, camera, renderer, playerMesh;
+        let conveyorItems = [];
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let playerVelocity = new THREE.Vector3();
+        let playerSpeed = 0.15;
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f0c1b);
+            scene.fog = new THREE.FogExp2(0x0f0c1b, 0.015);
+
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Luzes
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xff007f, 0.8);
+            dirLight.position.set(20, 40, 20);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const blueLight = new THREE.PointLight(0x00ffcc, 1, 50);
+            blueLight.position.set(0, 10, 0);
+            scene.add(blueLight);
+
+            // Chão da Cidade / Praça Central
+            const floorGeo = new THREE.PlaneGeometry(250, 250);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1528, roughness: 0.8 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            createEnvironment();
+            createConveyorBelt();
+
+            // Jogador
+            const playerGeo = new THREE.BoxGeometry(1.2, 2, 1.2);
+            const playerMat = new THREE.MeshStandardMaterial({ color: 0x00ffcc, roughness: 0.2 });
+            playerMesh = new THREE.Mesh(playerGeo, playerMat);
+            playerMesh.position.set(0, 1, 15);
+            playerMesh.castShadow = true;
+            scene.add(playerMesh);
+
+            camera.position.set(0, 6, 23);
+            camera.lookAt(playerMesh.position);
+
+            window.addEventListener('keydown', (e) => handleKey(e, true));
+            window.addEventListener('keyup', (e) => handleKey(e, false));
+            window.addEventListener('resize', onWindowResize);
+
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                document.getElementById('mobile-controls').style.display = 'flex';
+                initJoystick();
+            }
+
+            animate();
+            loadGame();
+        }
+
+        function createEnvironment() {
+            const beltBaseGeo = new THREE.BoxGeometry(8, 0.5, 80);
+            const beltBaseMat = new THREE.MeshStandardMaterial({ color: 0x261f3d });
+            const beltBase = new THREE.Mesh(beltBaseGeo, beltBaseMat);
+            beltBase.position.set(0, 0.25, 0);
+            scene.add(beltBase);
+
+            for (let i = -3; i <= 3; i++) {
+                if (i === 0) continue;
+                const buildingGeo = new THREE.BoxGeometry(10, 12, 10);
+                const buildingMat = new THREE.MeshStandardMaterial({ color: 0x1e1832, roughness: 0.5 });
+                const building = new THREE.Mesh(buildingGeo, buildingMat);
+                building.position.set(i * 18, 6, -30);
+                scene.add(building);
+
+                const buildingLeft = building.clone();
+                buildingLeft.position.set(i * 18, 6, 30);
+                scene.add(buildingLeft);
+            }
+        }
+
+        function createConveyorBelt() {
+            for (let i = 0; i < 6; i++) {
+                spawnConveyorItem(i * 12 - 30);
+            }
+        }
+
+        function spawnConveyorItem(zPos) {
+            const randomData = brainrotCatalog[Math.floor(Math.random() * brainrotCatalog.length)];
+            const itemGeo = new THREE.BoxGeometry(2, 2, 2);
+            const itemMat = new THREE.MeshStandardMaterial({ color: randomData.color, emissive: randomData.color, emissiveIntensity: 0.3 });
+            const itemMesh = new THREE.Mesh(itemGeo, itemMat);
+            itemMesh.position.set(0, 1.5, zPos);
+            itemMesh.userData = randomData;
+            scene.add(itemMesh);
+            conveyorItems.push(itemMesh);
+        }
+
+        function handleKey(e, isDown) {
+            switch(e.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = isDown; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = isDown; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = isDown; break;
+                case 'KeyD': case 'ArrowRight': moveRight = isDown; break;
+                case 'Space': if (isDown) triggerJump(); break;
+            }
+        }
+
+        let isJumping = false;
+        function triggerJump() {
+            if (!isJumping && playerMesh.position.y <= 1.05) {
+                isJumping = true;
+                playerVelocity.y = 0.22;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (moveForward) playerMesh.position.z -= playerSpeed;
+            if (moveBackward) playerMesh.position.z += playerSpeed;
+            if (moveLeft) playerMesh.position.x -= playerSpeed;
+            if (moveRight) playerMesh.position.x += playerSpeed;
+
+            playerMesh.position.x = Math.max(-60, Math.min(60, playerMesh.position.x));
+            playerMesh.position.z = Math.max(-50, Math.min(50, playerMesh.position.z));
+
+            if (isJumping) {
+                playerMesh.position.y += playerVelocity.y;
+                playerVelocity.y -= 0.015;
+                if (playerMesh.position.y <= 1.0) {
+                    playerMesh.position.y = 1.0;
+                    isJumping = false;
+                }
+            }
+
+            camera.position.x += (playerMesh.position.x - camera.position.x) * 0.1;
+            camera.position.z += (playerMesh.position.z + 10 - camera.position.z) * 0.1;
+            camera.lookAt(playerMesh.position);
+
+            conveyorItems.forEach(item => {
+                item.position.z += 0.05;
+                item.rotation.y += 0.02;
+                if (item.position.z > 40) {
+                    item.position.z = -40;
+                    const newData = brainrotCatalog[Math.floor(Math.random() * brainrotCatalog.length)];
+                    item.userData = newData;
+                    item.material.color.setHex(newData.color);
+                    item.material.emissive.setHex(newData.color);
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // --- SISTEMA DE LOJA & COMPRA ---
+        function populateShop() {
+            const grid = document.getElementById('shop-items-grid');
+            grid.innerHTML = '';
+            brainrotCatalog.forEach(brainrot => {
+                grid.innerHTML += `
+                    <div class="card-item">
+                        <h4>${brainrot.name}</h4>
+                        <p>Raridade: <b>${brainrot.rarity}</b></p>
+                        <p style="color:#00ffcc;">+$${brainrot.rps}/s</p>
+                        <p style="color:#ffcc00;">Preço: $${brainrot.price.toLocaleString()}</p>
+                        <button class="btn-action" onclick="buyBrainrot(${brainrot.id})">Comprar</button>
+                    </div>
+                `;
+            });
+        }
+
+        function buyBrainrot(id) {
+            const brainrot = brainrotCatalog.find(b => b.id === id);
+            if (gameState.money >= brainrot.price) {
+                gameState.money -= brainrot.price;
+                gameState.rps += brainrot.rps;
+                gameState.inventory.push(brainrot);
+                playSound('buy');
+                updateHUD();
+                updateInventory();
+                saveGame();
+            } else {
+                alert("Dinheiro insuficiente!");
+            }
+        }
+
+        function interactConveyor() {
+            let nearest = null;
+            let minDist = 999;
+            conveyorItems.forEach(item => {
+                let dist = item.position.distanceTo(playerMesh.position);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = item;
+                }
+            });
+
+            if (nearest && minDist < 6) {
+                let bData = nearest.userData;
+                if (gameState.money >= bData.price) {
+                    gameState.money -= bData.price;
+                    gameState.rps += bData.rps;
+                    gameState.inventory.push(bData);
+                    playSound('buy');
+                    updateHUD();
+                    updateInventory();
+                    saveGame();
+                    nearest.position.z = -40;
+                } else {
+                    alert(`Você precisa de $${bData.price.toLocaleString()} para comprar este ${bData.name}!`);
+                }
+            } else {
+                alert("Aproxime-se da esteira central para comprar um Brainrot!");
+            }
+        }
+
+        function updateInventory() {
+            const grid = document.getElementById('inventory-items-grid');
+            grid.innerHTML = '';
+            if (gameState.inventory.length === 0) {
+                grid.innerHTML = `<p style="color:#777; grid-column: 1/-1; text-align:center;">Seu inventário está vazio.</p>`;
+                return;
+            }
+            gameState.inventory.forEach((item) => {
+                grid.innerHTML += `
+                    <div class="card-item">
+                        <h4>${item.name}</h4>
+                        <p>${item.rarity}</p>
+                        <p style="color:#ffcc00;">+$${item.rps}/s</p>
+                    </div>
+                `;
+            });
+        }
+
+        setInterval(() => {
+            gameState.money += gameState.rps;
+            updateHUD();
+        }, 1000);
+
+        function updateHUD() {
+            document.getElementById('money-val').innerText = `$ ${Math.floor(gameState.money).toLocaleString()}`;
+            document.getElementById('rps-val').innerText = `+${gameState.rps}/s por Brainrots`;
+            document.getElementById('rebirth-val').innerText = gameState.rebirth;
+        }
+
+        // --- CÓDIGOS PROMOCIONAIS ---
+        const validCodes = {
+            "BRAINROT2026": { money: 10000, rps: 50 },
+            "UPDATE1": { money: 25000, rps: 100 },
+            "SECRET": { money: 100000, rps: 500 },
+            "FREECASH": { money: 5000, rps: 20 },
+            "ADMINV999": { money: 500000, rps: 2000 }
+        };
+
+        function redeemCode() {
+            let codeInput = document.getElementById('code-input').value.trim().toUpperCase();
+            let feedback = document.getElementById('code-feedback');
+            
+            if (gameState.codesUsed.includes(codeInput)) {
+                feedback.style.color = "#ff4757";
+                feedback.innerText = "Este código já foi utilizado!";
+                return;
+            }
+
+            if (validCodes[codeInput]) {
+                let reward = validCodes[codeInput];
+                gameState.money += reward.money;
+                gameState.rps += reward.rps;
+                gameState.codesUsed.push(codeInput);
+                playSound('coin');
+                feedback.style.color = "#00ffcc";
+                feedback.innerText = `Sucesso! Ganhou $${reward.money.toLocaleString()} e +${reward.rps}/s!`;
+                updateHUD();
+                saveGame();
+            } else {
+                feedback.style.color = "#ff4757";
+                feedback.innerText = "Código inválido ou expirado.";
+            }
+        }
+
+        function populateRanking() {
+            const list = document.getElementById('ranking-list');
+            const rankingData = [
+                { rank: 1, name: "ProBrainrotMaster", money: "$ 450,000,000", rebirth: 45 },
+                { rank: 2, name: "TralaleroKing", money: "$ 120,500,000", rebirth: 32 },
+                { rank: 3, name: "NoobiniGod", money: "$ 85,200,000", rebirth: 28 },
+                { rank: 4, name: "Você (Admin Supremo)", money: document.getElementById('money-val').innerText, rebirth: gameState.rebirth },
+                { rank: 5, name: "SpeedRunner99", money: "$ 12,400,000", rebirth: 12 }
+            ];
+            list.innerHTML = '';
+            rankingData.forEach(r => {
+                list.innerHTML += `
+                    <div style="background: #261f3d; padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #483875;">
+                        <div><b>#${r.rank}</b> ${r.name}</div>
+                        <div style="color: #00ffcc; font-size: 13px;">${r.money} (Rebirth ${r.rebirth})</div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- PAINEL ADMIN V999 (COMANDOS COMPLETOS) ---
+        function adminLog(msg) {
+            const logBox = document.getElementById('admin-log');
+            logBox.innerHTML += `<br>[${new Date().toLocaleTimeString()}] ${msg}`;
+            logBox.scrollTop = logBox.scrollHeight;
+            playSound('admin');
+        }
+
+        function adminAddMoney(amount) {
+            gameState.money += amount;
+            updateHUD();
+            adminLog(`Comando Admin: Adicionado $${amount.toLocaleString()}!`);
+        }
+
+        function adminAddRps(amount) {
+            gameState.rps += amount;
+            updateHUD();
+            adminLog(`Comando Admin: Adicionado +${amount.toLocaleString()} R/s passivo!`);
+        }
+
+        function adminSpawnSecret() {
+            const secretBrainrot = brainrotCatalog[brainrotCatalog.length - 1];
+            gameState.inventory.push(secretBrainrot);
+            gameState.rps += secretBrainrot.rps;
+            updateInventory();
+            updateHUD();
+            adminLog(`Comando Admin: Spawnado ${secretBrainrot.name} (${secretBrainrot.rarity})!`);
+        }
+
+        function adminUnlockAll() {
+            brainrotCatalog.forEach(b => gameState.inventory.push(b));
+            gameState.rps += 30000;
+            updateInventory();
+            updateHUD();
+            adminLog(`Comando Admin: Todos os Brainrots desbloqueados!`);
+        }
+
+        function adminTriggerEvent() {
+            const banner = document.getElementById('event-banner');
+            banner.style.display = 'block';
+            gameState.rps *= 2;
+            updateHUD();
+            adminLog(`Comando Admin: Evento Turbo Global Ativado (x2 Renda)!`);
+            setTimeout(() => { banner.style.display = 'none'; }, 10000);
+        }
+
+        function adminMaxRebirth(target = 1) {
+            if (target > 1) {
+                gameState.rebirth = target;
+                adminLog(`Comando Admin: Rebirth configurado para o nível ${target}!`);
+            } else {
+                gameState.rebirth += 1;
+                adminLog(`Comando Admin: +1 Rebirth efetuado!`);
+            }
+            updateHUD();
+        }
+
+        function adminSpeedBoost() {
+            playerSpeed = 0.35;
+            adminLog(`Comando Admin: Velocidade de movimento duplicada!`);
+        }
+
+        function adminGodMode() {
+            gameState.money += 999999999;
+            gameState.rps += 500000;
+            playerSpeed = 0.4;
+            updateHUD();
+            adminLog(`Comando Admin: MODO DEUS ATIVADO TOTALMENTE!`);
+        }
+
+        function adminClearInventory() {
+            gameState.inventory = [];
+            gameState.rps = 10;
+            updateInventory();
+            updateHUD();
+            adminLog(`Comando Admin: Inventário e base limpos.`);
+        }
+
+        function adminResetSave() {
+            if (confirm("Tem certeza que deseja resetar todo o progresso do jogo?")) {
+                localStorage.removeItem('brainrot_save_v1');
+                location.reload();
+            }
+        }
+
+        function saveGame() {
+            localStorage.setItem('brainrot_save_v1', JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('brainrot_save_v1');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    gameState.money = data.money || 1500;
+                    gameState.rps = data.rps || 12;
+                    gameState.rebirth = data.rebirth || 0;
+                    gameState.inventory = data.inventory || [];
+                    gameState.codesUsed = data.codesUsed || [];
+                    updateHUD();
+                    updateInventory();
+                } catch(e) {}
+            }
+            populateShop();
+        }
+
+        function openModal(id) {
+            document.getElementById(id).style.display = 'flex';
+            if (id === 'shop-modal') populateShop();
+            if (id === 'inventory-modal') updateInventory();
+            if (id === 'ranking-modal') populateRanking();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        function initJoystick() {
+            const joystick = document.getElementById('joystick');
+            const thumb = document.getElementById('joystick-thumb');
+            let active = false;
+            let center = { x: 60, y: 60 };
+
+            joystick.addEventListener('touchstart', (e) => { active = true; });
+            window.addEventListener('touchend', (e) => {
+                active = false;
+                thumb.style.transform = `translate(0px, 0px)`;
+                moveForward = false; moveBackward = false; moveLeft = false; moveRight = false;
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (!active) return;
+                let touch = e.targetTouches[0];
+                let rect = joystick.getBoundingClientRect();
+                let x = touch.clientX - rect.left - center.x;
+                let y = touch.clientY - rect.top - center.y;
+                let dist = Math.sqrt(x*x + y*y);
+                let maxDist = 40;
+
+                if (dist > maxDist) {
+                    x = (x / dist) * maxDist;
+                    y = (y / dist) * maxDist;
+                }
+                thumb.style.transform = `translate(${x}px, ${y}px)`;
+
+                moveForward = y < -10;
+                moveBackward = y > 10;
+                moveLeft = x < -10;
+                moveRight = x > 10;
+            });
+        }
+
+        window.onload = init3D;
+    </script>
+</body>
+</html>mpletar o mesmo arquivo sem repetir o começo
